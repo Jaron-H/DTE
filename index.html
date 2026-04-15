@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DynamicTecEvent – Veranstaltungstechnik</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Bebas Neue (Display) + Barlow (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <script>
+    /* ─── Tailwind Config ─────────────────────────────────────── */
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'electric': '#00AAFF',
+            'electric-dark': '#0077CC',
+            'ember':    '#FF6A00',
+            'ember-dark':'#CC4E00',
+            'surface':  '#0D1117',
+            'surface-2':'#161C26',
+            'surface-3':'#1E2636',
+            'border':   '#2A3548',
+          },
+          fontFamily: {
+            display: ['"Bebas Neue"', 'sans-serif'],
+            body:    ['"Barlow"', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ─── Global Resets & Base ────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Barlow', sans-serif;
+      background-color: #0D1117;
+      color: #CBD5E1;
+      overflow-x: hidden;
+    }
+
+    /* ─── Custom Scrollbar ────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0D1117; }
+    ::-webkit-scrollbar-thumb { background: #00AAFF; border-radius: 3px; }
+
+    /* ─── CSS Variables ───────────────────────────────────────── */
+    :root {
+      --electric: #00AAFF;
+      --ember:    #FF6A00;
+      --glow-e:   0 0 20px rgba(0,170,255,0.45);
+      --glow-o:   0 0 20px rgba(255,106,0,0.45);
+    }
+
+    /* ─── Noise Texture Overlay ───────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Header / Nav ────────────────────────────────────────── */
+    #main-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    #main-header.scrolled {
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 1px 0 #2A3548;
+    }
+    .nav-link {
+      position: relative;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: #94A3B8;
+      transition: color 0.25s;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0; bottom: -3px;
+      width: 0; height: 2px;
+      background: var(--electric);
+      transition: width 0.3s;
+    }
+    .nav-link:hover { color: #fff; }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ─── Hero ────────────────────────────────────────────────── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    /* Gradient mesh background (no external image needed) */
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 40%, rgba(0,170,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 70%, rgba(255,106,0,0.10) 0%, transparent 55%),
+        linear-gradient(170deg, #0D1117 0%, #111827 100%);
+    }
+    /* Decorative animated grid */
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,170,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,170,255,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: grid-drift 20s linear infinite;
+    }
+    @keyframes grid-drift { from { transform: translateY(0); } to { transform: translateY(60px); } }
+
+    .hero-content { position: relative; z-index: 1; }
+
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 10vw, 8rem);
+      line-height: 0.95;
+      letter-spacing: 0.02em;
+      color: #fff;
+    }
+    .hero-title .accent-e { color: var(--electric); text-shadow: var(--glow-e); }
+    .hero-title .accent-o { color: var(--ember);    text-shadow: var(--glow-o); }
+
+    /* Image Placeholder */
+    .img-placeholder {
+      background: linear-gradient(135deg, #1E2636 0%, #161C26 100%);
+      border: 1px dashed #2A3548;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #475569; font-size: 0.75rem;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      gap: 0.5rem;
+    }
+
+    /* ─── Section Titles ──────────────────────────────────────── */
+    .section-label {
+      font-size: 0.7rem; letter-spacing: 0.25em;
+      text-transform: uppercase; color: var(--electric);
+      font-weight: 700;
+    }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 1;
+      color: #fff;
+      letter-spacing: 0.03em;
+    }
+
+    /* ─── Equipment Cards ─────────────────────────────────────── */
+    .eq-card {
+      background: #161C26;
+      border: 1px solid #2A3548;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+    .eq-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--electric);
+      box-shadow: 0 12px 40px rgba(0,170,255,0.18);
+    }
+    .eq-card .card-tag {
+      font-size: 0.65rem; letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: rgba(0,170,255,0.12);
+      color: var(--electric);
+      padding: 2px 8px; border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* ─── Bundle Cards ────────────────────────────────────────── */
+    .bundle-card {
+      background: #161C26;
+      border: 1px solid #2A3548;
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .bundle-card.featured {
+      border-color: var(--ember);
+      box-shadow: 0 0 30px rgba(255,106,0,0.2);
+    }
+    .bundle-card:not(.featured):hover {
+      border-color: var(--electric);
+      box-shadow: 0 8px 30px rgba(0,170,255,0.15);
+    }
+    .bundle-header {
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #1E2636 0%, #161C26 100%);
+      border-bottom: 1px solid #2A3548;
+    }
+    .bundle-price {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem; line-height: 1;
+      color: #fff;
+    }
+    .bundle-price span { font-size: 1.2rem; color: #64748B; }
+    .bundle-feature {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.88rem; color: #94A3B8;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+    }
+    .bundle-feature:last-child { border-bottom: none; }
+    .bundle-feature i { color: var(--electric); width: 14px; }
+    .bundle-card.featured .bundle-feature i { color: var(--ember); }
+
+    /* ─── Lightbox / Modal ────────────────────────────────────── */
+    #lightbox {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    #lightbox.open { display: flex; }
+    .lightbox-inner {
+      background: #161C26;
+      border: 1px solid #2A3548;
+      border-radius: 16px;
+      max-width: 820px; width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      animation: lb-in 0.28s ease;
+    }
+    @keyframes lb-in {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .lb-img-area {
+      position: relative;
+      height: 300px;
+    }
+    .lb-nav-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(0,0,0,0.55);
+      border: 1px solid #2A3548;
+      color: #fff; width: 40px; height: 40px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.2s, border-color 0.2s;
+      z-index: 5;
+    }
+    .lb-nav-btn:hover { background: var(--electric); border-color: var(--electric); }
+    .lb-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #2A3548; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .lb-dot.active { background: var(--electric); }
+
+    /* ─── Contact Form ────────────────────────────────────────── */
+    .form-group label {
+      display: block; font-size: 0.78rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #64748B; font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .form-input {
+      width: 100%;
+      background: #1E2636;
+      border: 1px solid #2A3548;
+      border-radius: 8px;
+      color: #CBD5E1;
+      padding: 0.7rem 1rem;
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.95rem;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--electric);
+      box-shadow: 0 0 0 3px rgba(0,170,255,0.12);
+    }
+    .form-input::placeholder { color: #475569; }
+
+    /* ─── CTA Buttons ─────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--electric), #0060BB);
+      color: #fff;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.85rem 2.2rem;
+      border-radius: 8px;
+      border: none; cursor: pointer;
+      transition: opacity 0.25s, transform 0.2s, box-shadow 0.25s;
+      font-size: 0.9rem;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-primary:hover {
+      opacity: 0.9; transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,170,255,0.35);
+    }
+    .btn-ember {
+      background: linear-gradient(135deg, var(--ember), #AA3800);
+      box-shadow: none;
+    }
+    .btn-ember:hover { box-shadow: 0 8px 25px rgba(255,106,0,0.35); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #2A3548;
+      color: #94A3B8;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.25s, color 0.25s;
+      font-size: 0.9rem;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-ghost:hover { border-color: var(--electric); color: #fff; }
+
+    /* ─── Mobile Nav Toggle ───────────────────────────────────── */
+    .hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: #94A3B8; margin: 4px 0;
+      transition: all 0.3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(4px,4px); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(4px,-4px); }
+
+    /* ─── Footer ──────────────────────────────────────────────── */
+    footer a { color: #64748B; transition: color 0.2s; }
+    footer a:hover { color: var(--electric); }
+
+    /* ─── Animations ──────────────────────────────────────────── */
+    .fade-up {
+      opacity: 0; transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ─── Filter Tabs ─────────────────────────────────────────── */
+    .filter-tab {
+      background: #1E2636; border: 1px solid #2A3548;
+      color: #64748B;
+      padding: 0.45rem 1.1rem; border-radius: 100px;
+      font-size: 0.8rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.25s;
+    }
+    .filter-tab.active, .filter-tab:hover {
+      background: var(--electric); border-color: var(--electric);
+      color: #fff;
+    }
+
+    /* ─── Section Divider ─────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #2A3548, transparent);
+    }
+
+    /* ─── Toast ───────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 300;
+      background: #1E2636; border: 1px solid var(--electric);
+      border-radius: 10px; padding: 1rem 1.5rem;
+      color: #fff; font-size: 0.9rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      box-shadow: var(--glow-e);
+      transform: translateY(120%); opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER / NAVIGATION
+═══════════════════════════════════════════════════════════════ -->
+<header id="main-header" class="py-4 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+
+    <!-- Logo Placeholder -->
+    <a href="#hero" class="flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-lg bg-electric flex items-center justify-center font-display text-surface text-sm font-bold tracking-wider shadow-[0_0_15px_rgba(0,170,255,0.5)]">DTE</div>
+      <span class="font-display text-xl text-white tracking-widest group-hover:text-electric transition-colors">
+        DTE
+      </span>
+    </a>
+
+    <!-- Desktop Nav -->
+    <nav class="hidden md:flex items-center gap-8">
+      <a href="#hero"      class="nav-link">Home</a>
+      <a href="#sortiment" class="nav-link">Sortiment</a>
+      <a href="#bundles"   class="nav-link">Bundles</a>
+      <a href="#kontakt"   class="nav-link">Kontakt</a>
+      <a href="#kontakt" class="btn-primary text-sm py-2 px-5">
+        <i class="fa-solid fa-bolt"></i> Anfrage senden
+      </a>
+    </nav>
+
+    <!-- Mobile Hamburger -->
+    <button id="hamburger-btn" class="hamburger md:hidden flex flex-col cursor-pointer" aria-label="Menu öffnen">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div id="mobile-menu" class="hidden md:hidden mt-4 bg-surface-2 border border-border rounded-xl overflow-hidden">
+    <div class="flex flex-col">
+      <a href="#hero"      class="nav-link px-6 py-4 border-b border-border" onclick="closeMobileMenu()">Home</a>
+      <a href="#sortiment" class="nav-link px-6 py-4 border-b border-border" onclick="closeMobileMenu()">Sortiment</a>
+      <a href="#bundles"   class="nav-link px-6 py-4 border-b border-border" onclick="closeMobileMenu()">Bundles</a>
+      <a href="#kontakt"   class="nav-link px-6 py-4" onclick="closeMobileMenu()">Kontakt</a>
+    </div>
+  </div>
+</header>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     HERO SECTION
+═══════════════════════════════════════════════════════════════ -->
+<section id="hero" class="relative min-h-screen flex items-center justify-center text-center px-6">
+  <!-- Animated background -->
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+
+  <!-- Decorative glow blobs -->
+  <div class="absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-electric opacity-5 blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-1/3 right-1/4 w-64 h-64 rounded-full bg-ember opacity-5 blur-3xl pointer-events-none"></div>
+
+  <div class="hero-content max-w-5xl mx-auto">
+    <!-- Eyebrow -->
+    <div class="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-surface-3 border border-border text-xs font-semibold tracking-widest uppercase text-electric">
+      <span class="w-2 h-2 rounded-full bg-electric animate-pulse"></span>
+      Veranstaltungstechnik · Verleih & Service
+    </div>
+
+    <!-- Main Title -->
+    <h1 class="hero-title mb-6">
+      <span class="block">DynamicTec<span class="accent-e">Event</span></span>
+      <span class="block text-slate-300 font-display" style="font-size: clamp(1.8rem, 4vw, 3.2rem); letter-spacing: 0.1em;">
+        Technik, die <span class="accent-o">bewegt</span>
+      </span>
+    </h1>
+
+    <p class="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed mb-10 font-light">
+      Professionelle Ton-, Licht- und Bühnentechnik für jeden Anlass –<br class="hidden md:block" />
+      von der kleinen Feier bis zum großen Festival.
+    </p>
+
+    <!-- CTA Buttons -->
+    <div class="flex flex-wrap gap-4 justify-center">
+      <a href="#sortiment" class="btn-primary">
+        <i class="fa-solid fa-box-open"></i>
+        Sortiment entdecken
+      </a>
+      <a href="#bundles" class="btn-ghost">
+        <i class="fa-solid fa-star"></i>
+        Bundle-Angebote
+      </a>
+    </div>
+
+
+
+
+</section>
+
+<div class="divider"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SORTIMENT SECTION
+═══════════════════════════════════════════════════════════════ -->
+<section id="sortiment" class="py-24 px-6 md:px-12 relative">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Section Header -->
+    <div class="text-center mb-12 fade-up">
+      <p class="section-label mb-3"><i class="fa-solid fa-circle-dot mr-2"></i>Equipment</p>
+      <h2 class="section-title mb-4">Unser <span style="color:var(--electric)">Sortiment</span></h2>
+      <p class="text-slate-400 max-w-xl mx-auto">
+        Modernste Veranstaltungstechnik für professionellen Einsatz – klicke auf ein Produkt für Details.
+      </p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex flex-wrap gap-3 justify-center mb-10 fade-up" id="filter-tabs">
+      <button class="filter-tab active" data-filter="all">Alle</button>
+      <button class="filter-tab" data-filter="ton">Ton</button>
+      <button class="filter-tab" data-filter="licht">Licht</button>
+      <button class="filter-tab" data-filter="sonstiges">Sonstiges</button>
+     
+    </div>
+
+    <!-- Equipment Grid -->
+    <div id="equipment-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+      <!-- ── TON ─────────────────────────────────────────────── -->
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-1')">
+        <div class="img-placeholder h-44">
+          <img src="ps10.jpg" alt="Nexo PS10 R2" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Nexo PS10 R2</h3>
+          <p class="text-slate-400 text-sm">Professionelles Point Source für klein bis mittel Große Bühnen und Outdoor-Events. 1250 W / 8 Ω.</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="powersoftt602a.png" alt="Powersoft T602A" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Powersoft T602A </h3>
+          <p class="text-slate-400 text-sm">Professioneller Audio Verstärker. 1300 W @ 8 Ω</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="Soundcraftefx12.jpg" alt="Soundcraft EFX12" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Soundcraft EFX12 </h3>
+          <p class="text-slate-400 text-sm">12-Kanal Analog-Mischpult</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="cl118.jpg" alt="the box CL 118 Sub MK II" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1"> the box CL 118 Sub MK II </h3>
+          <p class="text-slate-400 text-sm">Aktiver 18" Subwoofer</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="cl110.jpg" alt="the box CL 118 Sub MK II" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">the box CL 110 Top MK II </h3>
+          <p class="text-slate-400 text-sm">Passive 10" Fullrange-Lautsprecher</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="soundboks3.jpg" alt="Soundboks Gen.3" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Soundboks Gen.3 </h3>
+          <p class="text-slate-400 text-sm">Akku Lautsprecher</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="ton" onclick="openLightbox('eq-2')">
+        <div class="img-placeholder h-44">
+          <img src="numarkdjcontroller.png" alt="Numark DJ Controller" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag">Ton</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Numark DJ Controller </h3>
+          <p class="text-slate-400 text-sm">Numark Mixtrack Pro Fx</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LICHT ───────────────────────────────────────────── -->
+      <div class="eq-card fade-up" data-category="licht" onclick="openLightbox('eq-3')">
+        <div class="img-placeholder h-44">
+          <img src="partymov.jpg" alt="Party Moving Lights" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(255,106,0,0.12);color:var(--ember)">Licht</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Party Moving Lights</h3>
+          <p class="text-slate-400 text-sm">bewegtes Partylicht</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 4 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="licht" onclick="openLightbox('eq-4')">
+        <div class="img-placeholder h-44">
+          <img src="ledspots.jpg" alt="Party Moving Lights" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(255,106,0,0.12);color:var(--ember)">Licht</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Led Spots</h3>
+          <p class="text-slate-400 text-sm">RGB Led Spots</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="licht" onclick="openLightbox('eq-4')">
+        <div class="img-placeholder h-44">
+          <img src="beamzbbp90.png" alt="Party Moving Lights" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(255,106,0,0.12);color:var(--ember)">Licht</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">beamz bbp90</h3>
+          <p class="text-slate-400 text-sm">RGB Led Akku Spots</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      
+
+      <!-- ── Sonstiges ───────────────────────────────────────────── -->
+      <div class="eq-card fade-up" data-category="sonstiges" onclick="openLightbox('eq-5')">
+        <div class="img-placeholder h-44">
+          <img src="nebelmaschine.jpg" alt="Magic FX DJ Shotgun" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(100,220,100,0.10);color:#4ade80">Sonstiges</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1">Nebelmaschine</h3>
+          <p class="text-slate-400 text-sm">Dichter Nebel auf Knopfdruck</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 2 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="sonstiges" onclick="openLightbox('eq-6')">
+        <div class="img-placeholder h-44">
+          <img src="MagicFXDJShotgun.jpg" alt="Magic FX DJ Shotgun" class="w-full h-full object-cover">
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(100,220,100,0.10);color:#4ade80">Sonstiges</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1"> Magic FX DJ Shotgun </h3>
+          <p class="text-slate-400 text-sm">Tragbarer Konfetti-Werfer</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="sonstiges" onclick="openLightbox('eq-6')">
+        <div class="img-placeholder h-44">
+          <i class="fa-solid fa-archway text-3xl"></i>
+          <span>Produktbild</span>
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(100,220,100,0.10);color:#4ade80">Sonstiges</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1"> Kabel </h3>
+          <p class="text-slate-400 text-sm">Strom/Audio/Licht Kabel</p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-card fade-up" data-category="sonstiges" onclick="openLightbox('eq-6')">
+        <div class="img-placeholder h-44">
+          <i class="fa-solid fa-archway text-3xl"></i>
+          <span>Produktbild</span>
+        </div>
+        <div class="p-4">
+          <span class="card-tag" style="background:rgba(100,220,100,0.10);color:#4ade80">Sonstiges</span>
+          <h3 class="text-white font-semibold text-base mt-2 mb-1"> Weiteres Equipment auf Anfrage </h3>
+          <p class="text-slate-400 text-sm"></p>
+          <div class="mt-3 flex items-center gap-1 text-electric text-xs font-semibold">
+            <i class="fa-solid fa-images"></i> 3 Bilder ansehen
+          </div>
+        </div>
+      </div>
+
+
+    </div><!-- /equipment-grid -->
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     BUNDLES SECTION
+═══════════════════════════════════════════════════════════════ -->
+<section id="bundles" class="py-24 px-6 md:px-12 relative">
+  <!-- Background glow -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-ember opacity-[0.04] blur-3xl"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto relative z-10">
+    <!-- Section Header -->
+    <div class="text-center mb-14 fade-up">
+      <p class="section-label mb-3"><i class="fa-solid fa-circle-dot mr-2"></i>Pakete</p>
+      <h2 class="section-title mb-4">Bundle <span style="color:var(--ember)">Angebote</span></h2>
+      <p class="text-slate-400 max-w-xl mx-auto">
+        Vorkonfigurierte Technik-Pakete für verschiedene Eventgrößen. Alle Preise zzgl. MwSt. und Lieferung.
+      </p>
+    </div>
+
+    <!-- Bundle Cards Grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <!-- Bundle 1: Starter -->
+      <div class="bundle-card fade-up flex flex-col">
+        <div class="bundle-header">
+          <div class="text-xs font-bold tracking-widest uppercase text-slate-500 mb-3">Starter</div>
+          <div class="bundle-price">30<span>€/Tag</span></div>
+          <div class="text-slate-500 text-sm mt-1">Ideal für private Feiern</div>
+        </div>
+        <div class="p-5 flex-1 flex flex-col">
+          <div class="flex-1 space-y-1 mb-6">
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Soundboks Gen.3</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 8x RGB Spots</div>
+            <div class="bundle-feature text-slate-600"><i class="fa-solid fa-xmark"></i> Ohne Aufbau & Lieferung</div>
+          </div>
+          <a href="#kontakt" class="btn-ghost w-full justify-center text-sm py-3">Anfragen</a>
+        </div>
+      </div>
+
+      <!-- Bundle 2: Small Party -->
+      <div class="bundle-card fade-up flex flex-col">
+        <div class="bundle-header">
+          <div class="text-xs font-bold tracking-widest uppercase text-slate-500 mb-3">Small Party</div>
+          <div class="bundle-price">80 <span>€/Tag</span></div>
+          <div class="text-slate-500 text-sm mt-1">Bis 50 Personen</div>
+        </div>
+        <div class="p-5 flex-1 flex flex-col">
+          <div class="flex-1 space-y-1 mb-6">
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> the box CL 118 Sub MK II</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i>2x the box CL 110 Top MK II</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Nebelmaschine</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 2x Party Moving Lights</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 8x Led Spots</div>
+            <div class="bundle-feature text-slate-600"><i class="fa-solid fa-xmark"></i> Ohne Aufbau & Lieferung</div>
+          </div>
+          <a href="#kontakt" class="btn-ghost w-full justify-center text-sm py-3">Anfragen</a>
+        </div>
+      </div>
+
+      <!-- Bundle 3: Noraml Party – FEATURED -->
+      <div class="bundle-card featured fade-up flex flex-col relative">
+        <!-- Badge -->
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+          <span class="bg-ember text-white text-xs font-bold px-4 py-1 rounded-full tracking-widest uppercase shadow-[var(--glow-o)]">
+            ★ Beliebt
+          </span>
+        </div>
+        <div class="bundle-header" style="background: linear-gradient(135deg, #261910, #1A1206);">
+          <div class="text-xs font-bold tracking-widest uppercase text-slate-500 mb-3">Normal Party</div>
+          <div class="bundle-price" style="color:var(--ember)">100<span>€/Tag</span></div>
+          <div class="text-slate-500 text-sm mt-1">Bis 100 Personen</div>
+        </div>
+        <div class="p-5 flex-1 flex flex-col">
+          <div class="flex-1 space-y-1 mb-6">
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> the box CL 118 Sub MK II</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i>2x the box CL 110 Top MK II</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Nebelmaschine</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 2x Party Moving Lights</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 8x Led Spots</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Konfetti-Werfer</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Mischpult Soundcraft EFX12</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 1x Mikrofone</div>
+          </div>
+          <a href="#kontakt" class="btn-primary btn-ember w-full justify-center text-sm py-3">
+            <i class="fa-solid fa-bolt"></i> Jetzt anfragen
+          </a>
+        </div>
+      </div>
+
+      <!-- Bundle 4: Hochzeit -->
+      <div class="bundle-card fade-up flex flex-col">
+        <div class="bundle-header">
+        </div>  <div class="text-xs font-bold tracking-widest uppercase text-slate-500 mb-3">Hochzeit</div>
+          <div class="bundle-price">300+ <span>€/Tag</span></div>
+          <div class="text-slate-500 text-sm mt-1">300+ Personen</div>
+        </div>
+        <div class="p-5 flex-1 flex flex-col">
+          <div class="flex-1 space-y-1 mb-6">
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 2x Nexo PS10 R2</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Powersoft T602A</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> the box CL 118 Sub MK II</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Nebelmaschine</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Konfetti-Werfer</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 2x Party Moving Lights</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 8x RGB Spots</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Mischpult Soundcraft EFX12</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 2x Mikrofone</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> 8x Beamz bbp90</div>
+            <div class="bundle-feature"><i class="fa-solid fa-check"></i> Optional: Betreuung durch Techniker,  DJ-Equipment, Video-Beamer, ...</div></div>
+          </div>
+          <a href="#kontakt" class="btn-ghost w-full justify-center text-sm py-3">Anfragen</a>
+        </div>
+      </div>
+
+    </div><!-- /bundle grid -->
+
+    <!-- Note -->
+    <p class="text-center text-slate-600 text-sm mt-8 fade-up">
+      <i class="fa-solid fa-circle-info mr-1"></i>
+      Individuelle Bundles auf Anfrage möglich · Lieferung &amp; Aufbau optional buchbar
+    </p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     KONTAKT SECTION
+═══════════════════════════════════════════════════════════════ -->
+<section id="kontakt" class="py-24 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid lg:grid-cols-2 gap-12 items-start">
+
+      <!-- Left: Info -->
+      <div class="fade-up">
+        <p class="section-label mb-3"><i class="fa-solid fa-circle-dot mr-2"></i>Kontakt</p>
+        <h2 class="section-title mb-6">Projekt <span style="color:var(--electric)">anfragen</span></h2>
+        <p class="text-slate-400 leading-relaxed mb-8">
+          Du planst ein Event und brauchst professionelle Veranstaltungstechnik? Füll das Formular aus und wir melden uns innerhalb von 24 Stunden bei dir.
+        </p>
+
+        <!-- Contact Info Cards -->
+        <div class="space-y-4">
+          <div class="flex items-start gap-4 p-4 bg-surface-2 border border-border rounded-xl">
+            <div class="w-10 h-10 rounded-lg bg-surface-3 flex items-center justify-center text-electric flex-shrink-0">
+              <i class="fa-solid fa-location-dot"></i>
+            </div>
+            <div>
+              <div class="text-white font-semibold text-sm mb-0.5">Adresse</div>
+              <div class="text-slate-400 text-sm">Hauptstraße 8, 71277 Rutesheim</div>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4 p-4 bg-surface-2 border border-border rounded-xl">
+            <div class="w-10 h-10 rounded-lg bg-surface-3 flex items-center justify-center text-electric flex-shrink-0">
+              <i class="fa-solid fa-phone"></i>
+            </div>
+            <div>
+              <div class="text-white font-semibold text-sm mb-0.5">Telefon</div>
+              <div class="text-slate-400 text-sm">01638064996</div>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4 p-4 bg-surface-2 border border-border rounded-xl">
+            <div class="w-10 h-10 rounded-lg bg-surface-3 flex items-center justify-center text-electric flex-shrink-0">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div>
+              <div class="text-white font-semibold text-sm mb-0.5">E-Mail</div>
+              <div class="text-slate-400 text-sm">dynamic.tec.event@gmail.com</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="mt-8 flex gap-3">
+          <a href="https://www.instagram.com/dynamictecevent?igsh=ajVmamprZndpMG16&utm_source=qr" class="w-10 h-10 rounded-lg bg-surface-2 border border-border flex items-center justify-center text-slate-400 hover:text-electric hover:border-electric transition-all">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: Form -->
+      <div class="fade-up">
+        <div class="bg-surface-2 border border-border rounded-2xl p-8">
+          <h3 class="text-white font-semibold text-lg mb-6">Anfrage senden</h3>
+          <div id="contact-form">
+            <div class="grid sm:grid-cols-2 gap-5 mb-5">
+              <!-- Name -->
+              <div class="form-group">
+                <label for="f-name"><i class="fa-solid fa-user mr-1.5"></i>Name</label>
+                <input id="f-name" type="text" class="form-input" placeholder="Dein Name" />
+              </div>
+              <!-- Email -->
+              <div class="form-group">
+                <label for="f-email"><i class="fa-solid fa-envelope mr-1.5"></i>E-Mail</label>
+                <input id="f-email" type="email" class="form-input" placeholder="dynmaic.tec.event@gmail.com" />
+              </div>
+            </div>
+            <!-- Event Date -->
+            <div class="form-group mb-5">
+              <label for="f-date"><i class="fa-solid fa-calendar mr-1.5"></i>Datum der Veranstaltung</label>
+              <input id="f-date" type="date" class="form-input" style="color-scheme: dark;" />
+            </div>
+            <!-- Bundle Selection -->
+            <div class="form-group mb-5">
+              <label for="f-bundle"><i class="fa-solid fa-box mr-1.5"></i>Interessiertes Paket (optional)</label>
+              <select id="f-bundle" class="form-input">
+                <option value="" disabled selected>Bitte wählen ...</option>
+                <option>Starter Set</option>
+                <option>Small Party Set</option>
+                <option>Concert Bundle</option>
+                <option>Festival Bundle</option>
+                <option>Individuelles Paket</option>
+              </select>
+            </div>
+            <!-- Message -->
+            <div class="form-group mb-6">
+              <label for="f-msg"><i class="fa-solid fa-comment mr-1.5"></i>Nachricht</label>
+              <textarea id="f-msg" rows="4" class="form-input resize-none" placeholder="Beschreibe dein Event, Anforderungen, Besonderheiten ..."></textarea>
+            </div>
+            <!-- Submit -->
+            <button onclick="submitForm()" class="btn-primary w-full justify-center py-3.5">
+              <i class="fa-solid fa-paper-plane"></i>
+              Anfrage absenden
+            </button>
+            <p class="text-slate-600 text-xs text-center mt-3">
+              <i class="fa-solid fa-lock mr-1"></i>
+              Deine Daten werden vertraulich behandelt.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════════════════ -->
+<footer class="border-t border-border py-12 px-6 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+      <!-- Logo + Name -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-electric flex items-center justify-center font-display text-surface text-sm font-bold">DTE</div>
+        <span class="font-display text-white tracking-widest text-lg">DTE</span>
+      </div>
+      <!-- Links -->
+      <div class="flex flex-wrap justify-center gap-6 text-sm">
+        <a href="#hero">Home</a>
+        <a href="#sortiment">Sortiment</a>
+        <a href="#bundles">Bundles</a>
+        <a href="#kontakt">Kontakt</a>
+        <a href="#">Impressum</a>
+        <a href="#">Datenschutz</a>
+      </div>
+      <!-- Copyright -->
+      <p class="text-slate-600 text-xs text-center md:text-right">
+        © 2025 DynamicTecEvent<br />Alle Rechte vorbehalten.
+      </p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     LIGHTBOX / MODAL
+═══════════════════════════════════════════════════════════════ -->
+<div id="lightbox" role="dialog" aria-modal="true" onclick="closeLightboxOutside(event)">
+  <div class="lightbox-inner" id="lightbox-inner">
+    <!-- Header -->
+    <div class="flex items-center justify-between p-5 border-b border-border">
+      <div>
+        <div id="lb-tag" class="card-tag text-xs mb-1">Kategorie</div>
+        <h3 id="lb-title" class="text-white font-semibold text-lg">Produkt</h3>
+      </div>
+      <button onclick="closeLightbox()" class="w-9 h-9 rounded-lg bg-surface-3 border border-border flex items-center justify-center text-slate-400 hover:text-white hover:bg-surface transition-all">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Image Area -->
+    <div class="lb-img-area">
+      <div id="lb-img" class="img-placeholder w-full h-full">
+        <i class="fa-solid fa-image text-4xl"></i>
+        <span id="lb-img-label">Bild 1 / 3</span>
+      </div>
+      <!-- Prev / Next -->
+      <button id="lb-prev" class="lb-nav-btn" style="left:12px" onclick="lbNav(-1)">
+        <i class="fa-solid fa-chevron-left text-sm"></i>
+      </button>
+      <button id="lb-next" class="lb-nav-btn" style="right:12px" onclick="lbNav(1)">
+        <i class="fa-solid fa-chevron-right text-sm"></i>
+      </button>
+    </div>
+
+    <!-- Dots -->
+    <div id="lb-dots" class="flex justify-center gap-2 py-4"></div>
+
+    <!-- Details -->
+    <div class="p-5 pt-0">
+      <p id="lb-desc" class="text-slate-400 text-sm leading-relaxed mb-5"></p>
+      <div id="lb-specs" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5"></div>
+      <div class="flex gap-3">
+        <a href="#kontakt" onclick="closeLightbox()" class="btn-primary flex-1 justify-center py-2.5 text-sm">
+          <i class="fa-solid fa-bolt"></i> Jetzt anfragen
+        </a>
+        <button onclick="closeLightbox()" class="btn-ghost py-2.5 px-5 text-sm">
+          Schließen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST NOTIFICATION
+═══════════════════════════════════════════════════════════════ -->
+<div id="toast">
+  <i class="fa-solid fa-circle-check text-electric text-lg"></i>
+  <span id="toast-msg">Anfrage erfolgreich gesendet!</span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────────────────────
+   DATA: Equipment catalogue
+   Each item has: id, category, tag, tagStyle, title, desc,
+   images (count), specs
+──────────────────────────────────────────────────────────────── */
+const equipment = {
+  'eq-1': {
+    tag: 'Ton', tagStyle: '',
+    title: 'Line Array System',
+    desc: 'Professionelles Line-Array für mittlere bis große Bühnen und Outdoor-Events. Das System liefert bis zu 20.000 Watt RMS und überzeugt mit hervorragender Sprachverständlichkeit und präziser Abstrahlcharakteristik.',
+    imageCount: 3,
+    specs: ['Leistung: 20.000W RMS', 'Frequenz: 40Hz–20kHz', 'SPL: 140 dB', 'Reichweite: bis 150m', 'Gewicht: 45 kg/Box', 'Rigging inklusive']
+  },
+  'eq-2': {
+    tag: 'Ton', tagStyle: '',
+    title: 'Digitalpult 32-Kanal',
+    desc: '32-Kanal Digital-Mischpult der Profi-Klasse mit integriertem DSP-Processing. Inklusive Tablet-App zur kabellosen Steuerung vom FOH oder Bühne.',
+    imageCount: 2,
+    specs: ['32 Eingangskanäle', '16 Busse', 'Tablet-Steuerung', 'Integrierter Recorder', 'Analog & Digital I/O', 'Stagebox inklusive']
+  },
+  'eq-3': {
+    tag: 'Licht', tagStyle: 'background:rgba(255,106,0,0.12);color:var(--ember)',
+    title: 'Moving Head Spot 300W',
+    desc: 'Leistungsstarker Moving Head mit GOBO-Rad, Prisma und CMY-Farbmischung. Ideal für dynamische Showlichteffekte auf Bühnen aller Größen.',
+    imageCount: 4,
+    specs: ['Leistung: 300W LED', 'Pan: 540°', 'Tilt: 270°', 'GOBO: 8+1 static', 'CMY + CTO', 'DMX 512/RDM']
+  },
+  'eq-4': {
+    tag: 'Licht', tagStyle: 'background:rgba(255,106,0,0.12);color:var(--ember)',
+    title: 'LED Wash Bar 7×40W',
+    desc: '7-Segment RGBW LED Wash Bar für effektvolle Bühnen- und Raumlichtgestaltung. Sehr kompakt und leistungsstark – ideal als Uplighter oder Footlight.',
+    imageCount: 3,
+    specs: ['7× 40W RGBW', 'Abstrahlwinkel: 60°', 'IP65 (outdoor)', 'Master-Slave', 'DMX 512', 'Flicker-Free']
+  },
+  'eq-5': {
+    tag: 'Bühne', tagStyle: 'background:rgba(100,220,100,0.10);color:#4ade80',
+    title: 'Modularbühne 6×4m',
+    desc: 'Stabiles Alu-Bühnen-System, variabel erweiterbar von 2×2m bis 12×8m. Alle Aufbauhöhen von 40 cm bis 120 cm möglich. Inklusive Treppenzugang und Sicherheitsgeländer.',
+    imageCount: 2,
+    specs: ['Fläche: 6×4m', 'Höhe: 40–120 cm', 'Last: 750 kg/m²', 'Modulares System', 'Geländer inklusive', 'Aufbauservice opt.']
+  },
+  'eq-6': {
+    tag: 'Bühne', tagStyle: 'background:rgba(100,220,100,0.10);color:#4ade80',
+    title: 'Traversensystem 12m',
+    desc: 'Alu-Traverse im Quadro-Design für Lichthänger, Bannerträger und Rigging-Applikationen. Mit Kettenzügen und Basis-Set lieferbar.',
+    imageCount: 3,
+    specs: ['Länge: bis 12m', 'Querschnitt: 290mm', 'Traglast: 500 kg/Feld', 'Material: Alu 6082', 'Kettenzüge opt.', 'Aufbau-Crew opt.']
+  },
+  'eq-7': {
+    tag: 'Video', tagStyle: 'background:rgba(168,85,247,0.12);color:#c084fc',
+    title: 'LED-Wall 4×3m (P3.9)',
+    desc: 'Indoor LED-Videowand in P3.9 Pitch-Technologie. 5.500 nits Helligkeit sorgen auch bei indirektem Tageslicht für strahlende Bilder. Nahtloser Aufbau durch Schnellverschluss-System.',
+    imageCount: 4,
+    specs: ['Pixelpitch: P3.9', 'Helligkeit: 5.500 nits', 'Auflösung: 1024×768', 'Refresh: 3.840 Hz', 'Videocontroller inkl.', 'Signalwandler inkl.']
+  },
+  'eq-8': {
+    tag: 'Video', tagStyle: 'background:rgba(168,85,247,0.12);color:#c084fc',
+    title: 'Projektor 12.000 Lumen',
+    desc: 'Professioneller Laser-Projektor mit WUXGA (1920×1200) Auflösung und HDBaseT-Signalübertragung bis 100m. Lichtstarke Alternative zur LED-Wall für helle Räume.',
+    imageCount: 2,
+    specs: ['Leuchtkraft: 12.000 lm', 'Auflösung: WUXGA', 'Technologie: Laser', 'HDBaseT inklusive', 'Lens-Shift vorhanden', 'Leinwand opt.']
+  }
+};
+
+/* ─── Lightbox State ─────────────────────────────────────── */
+let lbCurrent = null; // current equipment id
+let lbIdx = 0;        // current image index
+
+/** Open Lightbox with given equipment id */
+function openLightbox(id) {
+  pass
+  const item = equipment[id];
+  if (!item) return;
+  lbCurrent = id;
+  lbIdx = 0;
+
+  // Fill content
+  const tagEl = document.getElementById('lb-tag');
+  tagEl.textContent = item.tag;
+  tagEl.style.cssText = item.tagStyle;
+
+  document.getElementById('lb-title').textContent = item.title;
+  document.getElementById('lb-desc').textContent  = item.desc;
+
+  // Render specs
+  const specsEl = document.getElementById('lb-specs');
+  specsEl.innerHTML = item.specs.map(s => `
+    <div class="bg-surface-3 border border-border rounded-lg p-2.5 text-xs text-slate-400">
+      <i class="fa-solid fa-circle-dot text-electric mr-1.5"></i>${s}
+    </div>
+  `).join('');
+
+  // Render dots
+  const dotsEl = document.getElementById('lb-dots');
+  dotsEl.innerHTML = Array.from({length: item.imageCount}, (_, i) =>
+    `<div class="lb-dot ${i === 0 ? 'active' : ''}" onclick="lbGoTo(${i})"></div>`
+  ).join('');
+
+  updateLbImage();
+
+  // Show/hide nav buttons
+  document.getElementById('lb-prev').style.display = item.imageCount > 1 ? 'flex' : 'none';
+  document.getElementById('lb-next').style.display = item.imageCount > 1 ? 'flex' : 'none';
+
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/** Navigate lightbox images */
+function lbNav(dir) {
+  const item = equipment[lbCurrent];
+  lbIdx = (lbIdx + dir + item.imageCount) % item.imageCount;
+  lbGoTo(lbIdx);
+}
+function lbGoTo(idx) {
+  lbIdx = idx;
+  updateLbImage();
+  // Update dots
+  document.querySelectorAll('.lb-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === idx)
+  );
+}
+function updateLbImage() {
+  const item = equipment[lbCurrent];
+  const label = document.getElementById('lb-img-label');
+  label.textContent = `Bild ${lbIdx + 1} / ${item.imageCount}`;
+}
+
+/** Close lightbox */
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeLightboxOutside(e) {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+}
+
+/* ─── Filter Tabs ────────────────────────────────────────── */
+document.getElementById('filter-tabs').addEventListener('click', function(e) {
+  const btn = e.target.closest('.filter-tab');
+  if (!btn) return;
+
+  // Update active state
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  const filter = btn.dataset.filter;
+  document.querySelectorAll('#equipment-grid .eq-card').forEach(card => {
+    const show = filter === 'all' || card.dataset.category === filter;
+    card.style.display = show ? '' : 'none';
+  });
+});
+
+/* ─── Header scroll effect ───────────────────────────────── */
+const header = document.getElementById('main-header');
+window.addEventListener('scroll', () => {
+  header.classList.toggle('scrolled', window.scrollY > 60);
+}, { passive: true });
+
+/* ─── Mobile Nav ─────────────────────────────────────────── */
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const mobileMenu   = document.getElementById('mobile-menu');
+hamburgerBtn.addEventListener('click', () => {
+  const open = mobileMenu.classList.toggle('hidden');
+  hamburgerBtn.classList.toggle('open', !open);
+});
+function closeMobileMenu() {
+  mobileMenu.classList.add('hidden');
+  hamburgerBtn.classList.remove('open');
+}
+
+/* ─── Scroll-reveal (IntersectionObserver) ───────────────── */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.fade-up').forEach((el, i) => {
+  el.style.transitionDelay = `${(i % 4) * 0.07}s`;
+  observer.observe(el);
+});
+
+/* ─── Contact Form ───────────────────────────────────────── */
+function submitForm() {
+  const name  = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const date  = document.getElementById('f-date').value;
+  const msg   = document.getElementById('f-msg').value.trim();
+
+  if (!name || !email) {
+    showToast('⚠ Bitte Name und E-Mail ausfüllen.', '#FF6A00');
+    return;
+  }
+  // Simulate send
+  showToast('✓ Anfrage erfolgreich gesendet! Wir melden uns bald.');
+}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+function showToast(message, borderColor = 'var(--electric)') {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  toastMsg.textContent = message;
+  toast.style.borderColor = borderColor;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+/* ─── Keyboard Accessibility ─────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+  if (document.getElementById('lightbox').classList.contains('open')) {
+    if (e.key === 'ArrowRight') lbNav(1);
+    if (e.key === 'ArrowLeft')  lbNav(-1);
+  }
+});
+</script>
+</body>
+</html>
